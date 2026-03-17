@@ -4,30 +4,30 @@
 
       <!-- LEFT -->
       <section class="main">
-<header class="top-bar">
-  <div class="header-left">
-  <div class="avatar">
-    <img src="../assets/icons/BigGreenB.png" alt="">
-  </div>
+        <header class="top-bar">
+          <div class="header-left">
+            <div class="avatar">
+              <img src="../assets/icons/BigGreenB.png" alt="">
+            </div>
 
-  <div class="user-text">
-    <div class="user-row">
-      <div class="name">Smith J.</div>
-      <div class="pill">Сегодня, вт, 7 окт.</div>
-    </div>
+            <div class="user-text">
+              <div class="user-row">
+                <div class="name">{{ user?.name || 'Безымянный герой' }}</div>
+                <div class="pill">{{ formatToday() }}</div>
+              </div>
 
-    <div class="period">
-      <img src="../assets/icons/calendar.svg" alt="">
-      Расписание занятий · 27.10.2025 – 1.11.2025
-    </div>
-  </div>
-</div>
+              <div class="period">
+                <img src="../assets/icons/calendar.svg" alt="">
+                Расписание занятий · {{ formatPeriod() }}
+              </div>
+            </div>
+          </div>
 
 
-  <div class="pill">
-    Неделя 2 · <strong>Текущая</strong>
-  </div>
-</header>
+          <div class="pill">
+            Неделя 2 · <strong>Текущая</strong>
+          </div>
+        </header>
 
         <div class="schedule-area">
 
@@ -41,164 +41,134 @@
           <!-- Тут потом будет grid -->
           <div class="schedule-grid">
 
-          <!-- HEADER ROW -->
+          <!-- HEADER -->
           <div class="cell time-head">Время</div>
-          <div class="cell day-head">Пн 27.10</div>
-          <div class="cell day-head">Вт 28.10</div>
-          <div class="cell day-head today">Ср 29.10<br /><span>Сегодня</span></div>
-          <div class="cell day-head">Чт 30.10</div>
-          <div class="cell day-head">Пт 31.10</div>
-          <div class="cell day-head">Сб 1.11</div>
-
-          <!-- ROW 1 -->
-          <div class="cell time-cell now">8:00–9:20</div>
-          <div class="cell">
-          <LessonCard
-              title="КВТ-22-9"
-              subject="физика"
-              place="А-301"
-              :hasHomework="true"
-              :isToday="false"
-              :isNow="false"
-          />
+          <div
+            v-for="day in days"
+            :key="day"
+            class="cell day-head"
+            :class="{ today: day === today }"
+          >
+            {{ formatDay(day) }}
+            <span v-if="day === today">Сегодня</span>
           </div>
 
-          <div class="cell empty">
-          <LessonCard
-              title="КВТ-22-9"
-              subject="физика"
-              place="А-301"
-              :hasHomework="false"
-              :isToday="false"
-              :isNow="false"
-          />
-          </div>
-          <div class="cell empty">        <LessonCard
-              title="КВТ-22-9"
-              subject="физика"
-              place="А-301"
-              :hasHomework="false"
-              :isToday="true"
-              :isNow="true"
-          /></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
+          <!-- BODY -->
+          <template v-for="time in timeSlots" :key="time">
 
-          <!-- ROW 2 -->
-          <div class="cell time-cell">9:30–10:50</div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty">
-                      <LessonCard
-              title="КВТ-22-9"
-              subject="физика"
-              place="А-301"
-              :hasHomework="true"
-              :isToday="true"
-              :isNow="false"
-          />
-          </div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
+            <!-- Время слева -->
+            <div class="cell time-cell">
+              {{ time }}
+            </div>
 
-          <!-- ROW 3 -->
-          <div class="cell time-cell">11:00–12:20</div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
+            <!-- Ячейки по дням -->
+            <div
+              v-for="day in days"
+              :key="day + time"
+              class="cell"
+            >
+              <LessonCard
+                v-if="getLesson(day, time)"
+                :title="getLesson(day, time).group.name"
+                :subject="getLesson(day, time).subject.name"
+                :place="getLesson(day, time).classroom"
+                :teacher="role === 'STUDENT'
+                  ? null
+                  : getLesson(day, time).teacher?.name"
+                :hasHomework="false"
+                :isToday="day === today"
+                :isNow="false"
+              />
+            </div>
 
-          <!-- ROW 4 -->
-          <div class="cell time-cell">12:40–14:00</div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
+          </template>
 
-          <!-- ROW 5 -->
-          <div class="cell time-cell">14:10–15:30</div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-
-          <!-- ROW 6 -->
-          <div class="cell time-cell">15:30–16:50</div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-          <div class="cell empty"></div>
-
-          </div>
+        </div>
         </div>
       </section>
 
       <!-- RIGHT -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <div class="role">admin</div>
-          <div class="email">n.grebennikov@aues.kz</div>
+          <div class="role">{{ user?.role }}</div>
+          <div class="email">{{ user?.email }}</div>
         </div>
         <div class="sidebar-content">
-        <div class="sidebar-card">
-          <div class="sidebar-item">
-            <span>Группы</span>
-            <img
-              src="../assets/icons/arrow_right.svg"
-              alt=""
-              class="arrow-icon"
-            />
-          </div>
+        <div class="sidebar-card" ref="sidebarCard" :style="{ '--after-height': afterHeight + 'px' }">
+          <template v-for="(item, index) in menu" :key="item.key">
 
-          <div class="sidebar-divider"></div>
+            <div
+              class="sidebar-item"
+              @click="handleClick(item)"
+            >
+              <span>{{ item.label }}</span>
 
-          <div class="sidebar-item expandable">
-          <div class="sidebar-item sub">
-            <span>Преподаватели</span>
-            <img src="../assets/icons/arrow_right.svg" class="arrow-icon">
-          </div>
-          </div>
-
-          <div class="teachers-grid">
-            <div class="teacher-chip">Иванов А.И.</div>
-            <div class="teacher-chip">Петров В.В.</div>
-            <div class="teacher-chip">Сидоров С.С.</div>
-            <div class="teacher-chip">Козлов К.К.</div>
-            <div class="teacher-chip active">Smith J.</div>
-            <div class="teacher-chip">Голушко В.И.</div>
-          </div>
-
-          <div class="sidebar-divider"></div>
-
-          <div class="sidebar-item">
-            <span>Аккаунты</span>
               <img
-              src="../assets/icons/arrow_right.svg"
-              alt=""
-              class="arrow-icon"
-            />
-          </div>
+                src="../assets/icons/arrow_right.svg"
+                class="arrow-icon"
+                :class="{ rotated: openItem === item.key }"
+              />
+            </div>
 
-          <div class="sidebar-divider"></div>
+            <!-- ВЛОЖЕННОЕ (преподаватели) -->
+            <div v-if="item.key === 'teachers' && openItem === 'teachers'">
+              <div class="teachers-grid">
+                <div
+                  v-for="teacher in teachers"
+                  :key="teacher.id"
+                  class="teacher-chip"
+                  :class="{ active: selectedTeacher?.id === teacher.id }"
+                  @click="selectTeacher(teacher)"
+                >
+                  {{ teacher.name }}
+                </div>
+              </div>
+            </div>
 
-          <div class="sidebar-item">
-            <span>Расписание</span>
-              <img
-              src="../assets/icons/arrow_right.svg"
-              alt=""
-              class="arrow-icon"
-            />
-          </div>
+            <div v-if="item.key === 'subjects' && openItem === 'subjects'">
+              <div class="teachers-grid">
+                <div
+                  v-for="subject in subjects"
+                  :key="subject.name"
+                  class="teacher-chip"
+                  :class="{ active: selectedSubject?.name === subject.name }"
+                  @click="selectSubject(subject)"
+                >
+                  {{ subject.name }}
+                </div>
+              </div>
+            </div>
+
+            <div v-if="item.key === 'homework' && openItem === 'homework'" class="homework-block">
+              <div class="week-selector">
+                <button @click="prevWeek">&lt;</button>
+                <span>Неделя {{ currentWeek }}</span>
+                <button @click="nextWeek">&gt;</button>
+              </div>
+
+              <div class="days">
+                <button
+                  v-for="day in weekDays"
+                  :key="day"
+                  :class="{ active: day === selectedDay }"
+                  @click="selectedDay = day"
+                >
+                  {{ dayShort(day) }}
+                </button>
+              </div>
+
+              <div class="homework-card">
+                <div class="subject">{{ homework.subject }}</div>
+                <div class="text">{{ homework.text }}</div>
+              </div>
+            </div>
+
+            <div
+              v-if="index !== menu.length - 1"
+              class="sidebar-divider"
+            ></div>
+
+          </template>
         </div>
         </div>
       </aside>
@@ -209,7 +179,271 @@
 </template>
 
 <script setup>
-import LessonCard from '../components/LessonCard.vue';
+import { ref, onMounted, computed } from 'vue'
+import { graphqlRequest } from '../api'
+import { useRouter } from 'vue-router'
+import LessonCard from '../components/LessonCard.vue'
+
+const router = useRouter()
+const schedule = ref([])
+const loading = ref(true)
+const error = ref('')
+const selectedTeacher = ref(null)
+const selectedSubject = ref(null)
+
+const selectTeacher = (teacher) => {
+  selectedTeacher.value =
+    selectedTeacher.value?.id === teacher.id ? null : teacher
+}
+
+const subjects = computed(() => {
+  const map = new Map()
+
+  schedule.value.forEach(lesson => {
+    if (lesson.subject) {
+      map.set(lesson.subject.name, lesson.subject)
+    }
+  })
+
+  return Array.from(map.values())
+})
+
+const selectSubject = (subject) => {
+  selectedSubject.value =
+    selectedSubject.value?.name === subject.name ? null : subject
+}
+
+const menuByRole = {
+  ADMIN: [
+    { label: 'Группы', key: 'groups', expandable: true },
+    { label: 'Преподаватели', key: 'teachers', expandable: true },
+    { label: 'Аккаунты', key: 'accounts', route: '/search-list' },
+    { label: 'Расписание', key: 'schedule', expandable: true }
+  ],
+  STUDENT: [
+    { label: 'Предметы', key: 'subjects', expandable: true },
+    { label: 'Преподаватели', key: 'teachers', expandable: true },
+    { label: 'Домашнее задание', key: 'homework', expandable: true },
+    { label: 'Лекции', key: 'lectures', expandable: true }
+  ],
+  TEACHER: [
+    { label: 'Группы', key: 'groups', expandable: true },
+    { label: 'Предметы', key: 'subjects', expandable: true },
+    { label: 'Домашнее задание', key: 'homework', expandable: true },
+    { label: 'Лекции', key: 'lectures', expandable: true }
+  ]
+}
+
+const menu = computed(() => {
+  return menuByRole[role.value] || []
+})
+
+const filteredSchedule = computed(() => {
+  let result = schedule.value
+
+  if (selectedTeacher.value) {
+    result = result.filter(
+      l => l.teacher?.name === selectedTeacher.value.name
+    )
+  }
+
+  if (selectedSubject.value) {
+    result = result.filter(
+      l => l.subject?.name === selectedSubject.value.name
+    )
+  }
+
+  return result
+})
+
+const openItem = ref(null)
+
+const handleClick = (item) => {
+  if (item.expandable) {
+    openItem.value = openItem.value === item.key ? null : item.key
+    return
+  }
+
+  if (item.route) {
+    router.push(item.route)
+  }
+}
+
+const getMonday = () => {
+  const today = new Date()
+  const day = today.getDay()
+
+  const diff = day === 0 ? -6 : 1 - day
+
+  const monday = new Date(today)
+  monday.setDate(today.getDate() + diff)
+
+  return monday
+}
+
+const startDate = getMonday()
+const today = new Date().toISOString().slice(0, 10)
+
+const days = computed(() => {
+  const arr = []
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(startDate)
+    d.setDate(d.getDate() + i)
+    arr.push(d.toISOString().slice(0, 10))
+  }
+  return arr
+})
+
+const timeSlots = [
+  "08:00",
+  "09:30",
+  "11:00",
+  "12:40",
+  "14:10",
+  "15:30"
+]
+
+const formatDay = (isoDate) => {
+  const date = new Date(isoDate)
+
+  const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+
+  const dayName = weekdays[date.getDay()]
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+
+  return `${dayName} ${day}.${month}`
+}
+
+const formatToday = () => {
+  const date = new Date()
+
+  const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
+
+  const dayName = weekdays[date.getDay()]
+  const day = date.getDate()
+
+  return `Сегодня ${dayName}, ${day}`
+}
+
+const formatPeriod = () => {
+  const start = new Date(days.value[0])
+  const end = new Date(days.value[5])
+
+  const format = (d) => {
+    const day = d.getDate()             
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const year = d.getFullYear()
+    return `${day}.${month}.${year}`
+  }
+
+  return `${format(start)} – ${format(end)}`
+}
+
+const loadSchedule = async () => {
+  loading.value = true
+  error.value = ''
+
+  try {
+    const startISO = days.value[0]
+    const endISO = days.value[5]
+
+    const data = await graphqlRequest(`
+      query {
+        scheduleForMe(
+          startDate: "${startISO}",
+          endDate: "${endISO}"
+        ) {
+          date
+          startTime
+          endTime
+          classroom
+          subject { name }
+          teacher { name }
+          group { name }
+        }
+      }
+    `)
+
+    schedule.value = data.scheduleForMe
+
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    loading.value = false
+  }
+}
+
+const getLesson = (date, startTime) => {
+  return filteredSchedule.value.find(
+    item => item.date === date && item.startTime === startTime
+  )
+}
+
+const getTeacherForLesson = (lesson) => {
+  if (!lesson) return null
+  if (role.value === 'ADMIN') return null
+  return lesson.teacher?.name
+}
+
+const role = ref(null)
+const user = ref(null)
+
+const loadUser = async () => {
+  const data = await graphqlRequest(`
+    query {
+      me {
+        name
+        email
+        role
+      }
+    }
+  `)
+
+  user.value = data.me
+  role.value = data.me.role
+}
+
+const teachers = ref([])
+
+const loadTeachers = async () => {
+  const data = await graphqlRequest(`
+    query {
+      users {
+        id
+        name
+        role
+      }
+    }
+  `)
+
+  teachers.value = data.users.filter(u => u.role === 'TEACHER')
+}
+
+const currentWeek = ref(2)
+const weekDays = ['Пн','Вт','Ср','Чт','Пт','Сб']
+const selectedDay = ref('Пн')
+
+const homework = ref({
+  subject: 'Математика',
+  text: 'Решить задачи из учебника по теме "Пределы функций"'
+})
+
+const prevWeek = () => {
+  if(currentWeek.value > 1) currentWeek.value--
+}
+
+const nextWeek = () => {
+  currentWeek.value++
+}
+
+const dayShort = (day) => day
+
+onMounted(async () => {
+  await loadUser()
+  await loadTeachers()
+  await loadSchedule()
+})
 </script>
 
 <style scoped>
@@ -421,7 +655,8 @@ import LessonCard from '../components/LessonCard.vue';
   border-radius: 18px;
   padding: 0;
   padding-bottom: 315px;
-
+  
+  height: 360px;
   position: relative;
   overflow: hidden;
   z-index: 1;
@@ -438,8 +673,7 @@ import LessonCard from '../components/LessonCard.vue';
   right: 0;
   bottom: 0;
 
-  height: 315px;
-
+  min-height: 490px;
   background-color: #f0f9f8;
 
   border-bottom-left-radius: 18px;
@@ -462,6 +696,7 @@ import LessonCard from '../components/LessonCard.vue';
   align-items: center;
   justify-content: space-between;
 
+  cursor: pointer;
   padding: 14px 16px;
   font-size: 14px;
   color: #2b3a3a;
@@ -504,6 +739,11 @@ import LessonCard from '../components/LessonCard.vue';
   height: 16px;
   flex-shrink: 0;
   opacity: 0.6;
+  transition: transform 0.2s ease;
+}
+
+.arrow-icon.rotated {
+  transform: rotate(90deg);
 }
 
 .teachers-grid {

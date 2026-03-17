@@ -11,7 +11,11 @@
         <label>   имя/email:</label>
         <div class="input">
           <img src="../assets/icons/human.svg" alt="" />
-          <input type="text" placeholder="ваше имя/email" />
+          <input
+            type="text"
+            placeholder="ваше имя/email"
+            v-model="email"
+          />
         </div>
       </div>
 
@@ -27,11 +31,20 @@
         <label>   пароль:</label>
         <div class="input">
           <img src="../assets/icons/lock.svg" alt="" />
-          <input type="password" placeholder="ваш пароль" />
+          <input
+            type="password"
+            placeholder="ваш пароль"
+            v-model="password"
+          />
         </div>
       </div>
 
-      <button class="login-btn">ВОЙТИ</button>
+      <p v-if="error" style="color: red; margin-top: 10px;">
+        {{ error }}
+      </p>
+      <button class="login-btn" @click="login" :disabled="loading">
+        {{ loading ? 'Загрузка...' : 'ВОЙТИ' }}
+      </button>
     </div>
 
     <div class="footer">too “community corporation”</div>
@@ -39,6 +52,47 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { graphqlRequest } from '../api'
+
+const router = useRouter()
+
+const email = ref('')
+const password = ref('')
+const error = ref('')
+const loading = ref(false)
+
+const login = async () => {
+  error.value = ''
+  loading.value = true
+
+  try {
+    const data = await graphqlRequest(`
+      mutation Login($email: String!, $password: String!) {
+        login(email: $email, password: $password) {
+          token
+          user {
+            id
+            name
+            role
+          }
+        }
+      }
+    `, {
+      email: email.value,
+      password: password.value
+    })
+
+    localStorage.setItem('token', data.login.token)
+
+    router.push('/schedule') // измени если маршрут другой
+  } catch (e) {
+    error.value = e.message || 'Ошибка соединения с сервером'
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <style scoped>
