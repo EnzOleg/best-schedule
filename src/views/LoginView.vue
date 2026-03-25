@@ -85,6 +85,7 @@ const login = async () => {
     })
 
     localStorage.setItem('token', data.login.token)
+    localStorage.setItem('role', data.login.user.role)
 
     router.push('/schedule') // измени если маршрут другой
   } catch (e) {
