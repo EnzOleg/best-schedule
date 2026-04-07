@@ -47,7 +47,7 @@
       </button>
     </div>
 
-    <div class="footer">too “community corporation”</div>
+    <div class="footer"></div>
   </div>
 </template>
 
