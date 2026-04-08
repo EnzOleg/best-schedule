@@ -254,6 +254,7 @@ onMounted(async () => {
 
 .main {
   flex: 1;
+  width: 1164px;
   background-color: rgba(240, 249, 248, 0.2);
   border-radius: 22px;
   padding: 18px;

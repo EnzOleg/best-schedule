@@ -94,11 +94,14 @@ const { formatDay } = useSchedule()
   display: grid;
   justify-items: center;
   align-items: center;
+  width: 100%;
+  min-width: 1098px;
   grid-template-columns: 120px repeat(6, 1fr);
   transition: transform 0.3s ease, opacity 0.2s ease;
   cursor: grab;
   grid-template-rows: 55px repeat(6, 100px);
   gap: 4px;
+  overflow-x: auto;
 
   border-radius: 22px;
   padding: 0;
@@ -199,5 +202,28 @@ const { formatDay } = useSchedule()
 .cell.empty {
   border-radius: 14px;
   background: transparent;
+}
+
+/* ---------- MEDIA QUERIES ---------- */
+@media (max-width: 1098px) {
+  /* Сетка остаётся, но можно уменьшить padding/шрифты внутри карточек */
+  .cell {
+    font-size: 14px; /* чуть меньше, чтобы помещалось */
+    padding: 2px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cell {
+    font-size: 13px;
+    padding: 1px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cell {
+    font-size: 12px;
+    padding: 1px;
+  }
 }
 </style>

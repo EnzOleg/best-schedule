@@ -115,46 +115,58 @@
               </div>
 
               <div v-if="expandedGroup === group.id" class="group-details">
-                <div v-for="student in group.students"
-                     :key="student.id"
-                     class="list-item student-item"
-                     :class="{ expanded: expandedStudent === student.id }">
-
-                  <div class="item-content">
-                    <div class="user-row">
-                      <img :src="studentIcon" class="role-icon" alt="student" />
-
-                      <div v-if="expandedStudent !== student.id" class="user-info">
-                        <div class="name">{{ student.name }}</div>
-                        <div class="email">{{ student.email }}</div>
-                      </div>
-
-                      <div v-else class="edit-form">
-                        <input v-model="studentEdit.name" placeholder="Имя" />
-                        <input v-model="studentEdit.email" placeholder="Email" />
-                      </div>
-                    </div>
-
-                    <button class="icon-btn edit-btn" @click="toggleStudent(student)">
-                      <img :src="editIcon" alt="edit" />
-                    </button>
-                  </div>
-
-                  <div v-if="expandedStudent === student.id" class="action-buttons">
-                    <button class="btn btn-primary" @click="saveStudent(student.id)">Сохранить</button>
-                    <button class="btn btn-secondary" @click="expandedStudent = null">Отмена</button>
+                <!-- Кнопка показа/скрытия формы добавления студента -->
+                <div class="add-student-toggle" @click.stop="toggleAddStudentForm(group.id)">
+                  <div class="toggle-header">
+                    <span class="arrow-icon" :class="{ rotated: showAddStudentForms[group.id] }">▼</span>
+                    <span class="toggle-label">Добавить студента</span>
                   </div>
                 </div>
 
-                <div class="create-form add-student-form">
+                <!-- Форма добавления студента (показывается при showAddStudentForms[group.id]) -->
+                <div v-if="showAddStudentForms[group.id]" class="create-form add-student-form slide-fade">
                   <input v-model="newStudent.name" placeholder="ФИО студента" />
                   <input v-model="newStudent.email" placeholder="Email" type="email" />
                   <input v-model="newStudent.password" placeholder="Пароль" type="password" />
                   <button class="btn btn-success" @click="addNewStudentToGroup(group.id)">+ Добавить студента</button>
                 </div>
 
-                <div v-if="group.students.length === 0" class="empty-state small">
-                  В группе пока нет студентов
+                <!-- Список студентов -->
+                <div class="students-list">
+                  <div v-for="student in group.students"
+                       :key="student.id"
+                       class="list-item student-item"
+                       :class="{ expanded: expandedStudent === student.id }">
+
+                    <div class="item-content">
+                      <div class="user-row">
+                        <img :src="studentIcon" class="role-icon" alt="student" />
+
+                        <div v-if="expandedStudent !== student.id" class="user-info">
+                          <div class="name">{{ student.name }}</div>
+                          <div class="email">{{ student.email }}</div>
+                        </div>
+
+                        <div v-else class="edit-form">
+                          <input v-model="studentEdit.name" placeholder="Имя" />
+                          <input v-model="studentEdit.email" placeholder="Email" />
+                        </div>
+                      </div>
+
+                      <button class="icon-btn edit-btn" @click="toggleStudent(student)">
+                        <img :src="editIcon" alt="edit" />
+                      </button>
+                    </div>
+
+                    <div v-if="expandedStudent === student.id" class="action-buttons">
+                      <button class="btn btn-primary" @click="saveStudent(student.id)">Сохранить</button>
+                      <button class="btn btn-secondary" @click="expandedStudent = null">Отмена</button>
+                    </div>
+                  </div>
+
+                  <div v-if="group.students.length === 0" class="empty-state small">
+                    В группе пока нет студентов
+                  </div>
                 </div>
               </div>
             </div>
@@ -199,6 +211,9 @@ const showCreateTeacher = ref(false)
 const showTeachersList = ref(true)
 const showGroupsList = ref(true)
 
+// Состояние видимости формы добавления студента для каждой группы
+const showAddStudentForms = ref({})
+
 const loadUsers = async () => {
   const data = await graphqlRequest(`query { users { id name email role } }`)
   users.value = data.users
@@ -214,6 +229,12 @@ const loadGroups = async () => {
     }
   `)
   groups.value = data.groups
+  // Инициализируем состояние форм добавления для каждой группы (по умолчанию скрыты)
+  groups.value.forEach(group => {
+    if (showAddStudentForms.value[group.id] === undefined) {
+      showAddStudentForms.value[group.id] = false
+    }
+  })
 }
 
 const toggleTeachersList = () => {
@@ -222,6 +243,10 @@ const toggleTeachersList = () => {
 
 const toggleGroupsList = () => {
   showGroupsList.value = !showGroupsList.value
+}
+
+const toggleAddStudentForm = (groupId) => {
+  showAddStudentForms.value[groupId] = !showAddStudentForms.value[groupId]
 }
 
 const toggleTeacher = (u) => {
@@ -279,7 +304,8 @@ const addNewStudentToGroup = async (groupId) => {
   `, { groupId, studentId: reg.register.id })
 
   newStudent.value = { name: '', email: '', password: '' }
-  loadGroups()
+  await loadGroups()
+  // После добавления студента можно оставить форму открытой или закрыть — оставляем как есть
 }
 
 const createNewGroup = async () => {
@@ -291,7 +317,7 @@ const createNewGroup = async () => {
 
   newGroup.value = { name: '', course: null, specialty: '', faculty: '' }
   showCreateGroup.value = false
-  loadGroups()
+  await loadGroups()
 }
 
 const createNewTeacher = async () => {
@@ -303,7 +329,7 @@ const createNewTeacher = async () => {
 
   newTeacher.value = { name: '', email: '', password: '' }
   showCreateTeacher.value = false
-  loadUsers()
+  await loadUsers()
 }
 
 const filteredTeachers = computed(() =>
@@ -332,36 +358,38 @@ onMounted(() => {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
   background: #f0f9f8;
   max-height: 80vh;
+  min-width: 80vh;
   overflow-y: scroll;
-  padding: 32px 24px;
+  padding: 24px 16px;
 }
 
 .columns {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   justify-content: center;
   flex-wrap: wrap;
 }
 
 .column {
   flex: 1;
-  min-width: 320px;
+  min-width: 280px;
   max-width: 500px;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* ----- Заголовки колонок (белый + зелёный) ----- */
+/* ----- Заголовки колонок (обновлённые тени и радиус) ----- */
 .column-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: white;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 12px 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  border: 1px solid #e2e8f0;
+  box-shadow: -2px -2px 4px 0 #FDF0DE,
+              1px 2px 4px 0 rgba(0, 0, 0, 0.25),
+              inset 2px 2px 4px 0 #FFFFFF;
 }
 
 .header-left {
@@ -421,7 +449,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .add-btn:hover {
@@ -429,9 +456,10 @@ onMounted(() => {
   transform: scale(1.02);
 }
 
-/* ----- Строка поиска ----- */
+/* ----- Строка поиска (теперь 100% ширина) ----- */
 .search-bar {
   position: relative;
+  width: 100%;
 }
 
 .search-icon {
@@ -442,23 +470,30 @@ onMounted(() => {
   width: 18px;
   opacity: 0.5;
   transition: opacity 0.2s;
+  z-index: 1;
 }
 
 .search-bar input {
-  width: 80%;
+  width: 100%;
   padding: 12px 16px 12px 44px;
-  border-radius: 28px;
-  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  border: none;
   background: white;
   font-size: 0.9rem;
   transition: all 0.2s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: -2px -2px 4px 0 #FDF0DE,
+              1px 2px 4px 0 rgba(0, 0, 0, 0.25),
+              inset 2px 2px 4px 0 #FFFFFF;
+  box-sizing: border-box;
 }
 
 .search-bar input:focus {
   outline: none;
   border-color: #1e8f84;
-  box-shadow: 0 0 0 3px rgba(30, 143, 132, 0.15);
+  box-shadow: -2px -2px 4px 0 #FDF0DE,
+              1px 2px 4px 0 rgba(0, 0, 0, 0.25),
+              inset 2px 2px 4px 0 #FFFFFF,
+              0 0 0 2px rgba(30, 143, 132, 0.3);
 }
 
 /* ----- Общий список ----- */
@@ -468,18 +503,22 @@ onMounted(() => {
   gap: 14px;
 }
 
+/* Элементы списка (преподаватели, группы, студенты) - те же тени и радиус */
 .list-item {
   background: white;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   transition: all 0.2s ease;
-  border: 1px solid #edf2f7;
+  box-shadow: -2px -2px 4px 0 #FDF0DE,
+              1px 2px 4px 0 rgba(0, 0, 0, 0.25),
+              inset 2px 2px 4px 0 #FFFFFF;
 }
 
 .list-item:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
   transform: translateY(-1px);
+  box-shadow: -2px -2px 6px 0 #FDF0DE,
+              2px 3px 6px 0 rgba(0, 0, 0, 0.3),
+              inset 2px 2px 4px 0 #FFFFFF;
 }
 
 .item-content {
@@ -502,16 +541,19 @@ onMounted(() => {
   background: #f1f5f9;
   border-radius: 12px;
   padding: 6px;
+  flex-shrink: 0;
 }
 
 .user-info {
   flex: 1;
+  min-width: 0; /* для корректного переноса текста */
 }
 
 .name {
   font-weight: 600;
   color: #0f172a;
   margin-bottom: 4px;
+  word-break: break-word;
 }
 
 .email {
@@ -531,6 +573,7 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .icon-btn img {
@@ -546,22 +589,22 @@ onMounted(() => {
   opacity: 1;
 }
 
-/* Формы редактирования */
+/* Формы редактирования (вертикальные инпуты) */
 .edit-form {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
 }
 
 .edit-form input {
-  flex: 1;
-  min-width: 120px;
+  width: 100%;
   padding: 6px 10px;
   border-radius: 12px;
   border: 1px solid #cbd5e1;
   font-size: 0.85rem;
   background: #fefefe;
+  box-sizing: border-box;
 }
 
 .edit-form input:focus {
@@ -627,6 +670,7 @@ onMounted(() => {
   transition: transform 0.25s ease;
   color: #1e8f84;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .arrow-icon.rotated {
@@ -640,28 +684,69 @@ onMounted(() => {
   border-top: 1px solid #eef2f6;
 }
 
+/* Блок переключения формы добавления студента */
+.add-student-toggle {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid #e2e8f0;
+}
+
+.add-student-toggle:hover {
+  background: #f1f5f9;
+}
+
+.toggle-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 500;
+  color: #1e8f84;
+}
+
+.toggle-label {
+  font-size: 0.9rem;
+}
+
+/* Форма добавления студента */
+.add-student-form {
+  margin-bottom: 20px;
+}
+
+/* Список студентов */
+.students-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .student-item {
-  margin-top: 12px;
+  margin-top: 0;
   background: #fafcff;
   border: 1px solid #eef2ff;
   padding: 12px;
 }
 
-/* Форма создания (группы / студента / преподавателя) */
+/* Форма создания (группы / преподавателя) */
 .create-form {
   background: white;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  box-shadow: -2px -2px 4px 0 #FDF0DE,
+              1px 2px 4px 0 rgba(0, 0, 0, 0.25),
+              inset 2px 2px 4px 0 #FFFFFF;
 }
 
 .create-form input {
   padding: 10px 14px;
-  border-radius: 16px;
+  border-radius: 12px;
   border: 1px solid #cbd5e1;
   font-size: 0.85rem;
 }
@@ -671,17 +756,12 @@ onMounted(() => {
   border-color: #1e8f84;
 }
 
-.add-student-form {
-  margin-top: 16px;
-  background: #f8fafc;
-}
-
 /* Пустые состояния */
 .empty-state {
   text-align: center;
   padding: 32px 20px;
   background: #f8fafc;
-  border-radius: 20px;
+  border-radius: 12px;
   color: #64748b;
   font-size: 0.85rem;
   border: 1px dashed #cbd5e1;
@@ -701,15 +781,93 @@ onMounted(() => {
   transform: translateY(-8px);
 }
 
-/* Адаптив */
-@media (max-width: 800px) {
-  .columns {
-    flex-direction: column;
-    align-items: center;
+/* ===== Адаптивность (улучшенная) ===== */
+@media (max-width: 768px) {
+  .admin-users {
+    padding: 16px 12px;
   }
+  
+  .columns {
+    gap: 20px;
+  }
+  
   .column {
+    min-width: 100%;
     max-width: 100%;
+  }
+  
+  .column-header {
+    padding: 10px 16px;
+  }
+  
+  .column-title {
+    font-size: 1rem;
+  }
+  
+  .list-item {
+    padding: 12px;
+  }
+  
+  .user-row {
+    gap: 8px;
+  }
+  
+  .role-icon {
+    width: 28px;
+    height: 28px;
+    padding: 4px;
+  }
+  
+  .edit-form input {
+    font-size: 0.8rem;
+    padding: 5px 8px;
+  }
+  
+  .btn {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+  
+  .add-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 1.2rem;
+  }
+  
+  .collapse-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-users {
+    padding: 12px 8px;
+  }
+  
+  .item-content {
+    flex-wrap: wrap;
+  }
+  
+  .user-row {
+    flex-wrap: wrap;
+  }
+  
+  .edit-form {
     width: 100%;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .btn {
+    text-align: center;
+  }
+  
+  .toggle-header {
+    font-size: 0.85rem;
   }
 }
 </style>
