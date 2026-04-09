@@ -3,9 +3,9 @@ import { computed } from 'vue'
 export function useMenu(role) {
   const menuByRole = {
     ADMIN: [
-      { label: 'Группы', key: 'groups'},
+      { label: 'Группы', key: 'groups', expandable: true},  
       { label: 'Преподаватели', key: 'teachers', expandable: true },
-      { label: 'Аккаунты', key: 'accounts' },
+      { label: 'Аккаунты', key: 'accounts', expandable: true },
       { label: 'Выйти', key: 'logout' }
     ],
     STUDENT: [

@@ -6,7 +6,29 @@ export function useSchedule() {
   const loading = ref(false)
   const error = ref('')
   const weekOffset = ref(0)
-  const teachers = ref([])
+  
+  // Загруженные с сервера преподаватели
+  const loadedTeachers = ref([])
+  
+  // Преподаватели из расписания (резервный вариант)
+  const teachersFromSchedule = computed(() => {
+    const map = new Map()
+    schedule.value.forEach(lesson => {
+      if (lesson.teacher && lesson.teacher.name) {
+        const key = lesson.teacher.id || lesson.teacher.name
+        if (!map.has(key)) {
+          map.set(key, lesson.teacher)
+        }
+      }
+    })
+    return Array.from(map.values())
+  })
+  
+  // Итоговый список преподавателей
+  const teachers = computed(() => {
+    return loadedTeachers.value.length ? loadedTeachers.value : teachersFromSchedule.value
+  })
+  
   const subjects = computed(() => {
     const map = new Map()
     schedule.value.forEach(lesson => {
@@ -16,8 +38,10 @@ export function useSchedule() {
     })
     return Array.from(map.values())
   })
+  
   const selectedTeacher = ref(null)
   const selectedSubject = ref(null)
+  const selectedGroup = ref(null)
   const lectures = ref([])
   const groups = ref([])
   
@@ -25,7 +49,6 @@ export function useSchedule() {
   const selectedDay = ref('Пн')
   const selectedLectureDay = ref('Пн')
   
-  // Переменные для форм создания
   const newHomeworkScheduleItem = ref(null)
   const newHomeworkText = ref('')
   const newLectureGroup = ref(null)
@@ -72,6 +95,9 @@ export function useSchedule() {
     if (selectedSubject.value) {
       result = result.filter(l => l.subject?.name === selectedSubject.value.name)
     }
+    if (selectedGroup.value) {
+      result = result.filter(l => l.group?.id === selectedGroup.value.id)
+    }
     return result
   })
   
@@ -102,10 +128,10 @@ export function useSchedule() {
             classroom
             subject { name }
             teacher { name }
-            group { name }
+            group { id name }
             homework {
-            id
-            text
+              id
+              text
             }
           }
         }
@@ -122,10 +148,10 @@ export function useSchedule() {
   }
   
   const loadLectures = async () => {
-  try {
-    const startISO = days.value[0]
-    const endISO = days.value[5]
-    const data = await graphqlRequest(`
+    try {
+      const startISO = days.value[0]
+      const endISO = days.value[5]
+      const data = await graphqlRequest(`
         query {
           lecturesForMe(startDate: "${startISO}", endDate: "${endISO}") {
             id
@@ -147,16 +173,21 @@ export function useSchedule() {
   }
   
   const loadTeachers = async () => {
-    const data = await graphqlRequest(`
-      query {
-        users {
-          id
-          name
-          role
+    try {
+      const data = await graphqlRequest(`
+        query {
+          users {
+            id
+            name
+            role
+          }
         }
-      }
-    `)
-    teachers.value = data.users.filter(u => u.role === 'TEACHER')
+      `)
+      loadedTeachers.value = data.users.filter(u => u.role === 'TEACHER')
+    } catch (e) {
+      console.warn('Не удалось загрузить преподавателей, используем список из расписания', e)
+      loadedTeachers.value = []
+    }
   }
   
   const loadGroups = async () => {
@@ -185,11 +216,27 @@ export function useSchedule() {
   }
   
   const selectTeacher = (teacher) => {
-    selectedTeacher.value = selectedTeacher.value?.id === teacher.id ? null : teacher
+    if (selectedTeacher.value?.id === teacher.id) {
+      selectedTeacher.value = null
+    } else {
+      selectedTeacher.value = teacher
+    }
   }
   
   const selectSubject = (subject) => {
-    selectedSubject.value = selectedSubject.value?.name === subject.name ? null : subject
+    if (selectedSubject.value?.name === subject.name) {
+      selectedSubject.value = null
+    } else {
+      selectedSubject.value = subject
+    }
+  }
+  
+  const selectGroup = (group) => {
+    if (selectedGroup.value?.id === group.id) {
+      selectedGroup.value = null
+    } else {
+      selectedGroup.value = group
+    }
   }
   
   const homeworkForSelectedDay = computed(() => {
@@ -197,10 +244,10 @@ export function useSchedule() {
     const date = days.value[index]
     const dayLessons = schedule.value.filter(l => l.date.slice(0, 10) === date)
     return dayLessons.flatMap(lesson => {
-        return (lesson.homework || []).map(hw => ({
+      return (lesson.homework || []).map(hw => ({
         ...hw,
         subject: lesson.subject
-        }))
+      }))
     })
   })
   
@@ -226,11 +273,6 @@ export function useSchedule() {
       alert('Выберите урок и введите текст задания')
       return
     }
-    console.log('Creating homework:', {
-    text: newHomeworkText.value,
-    date: newHomeworkScheduleItem.value.date,
-    scheduleItemId: newHomeworkScheduleItem.value.id
-    })
     try {
       await graphqlRequest(`
         mutation CreateHomework($input: CreateHomeworkInput!) {
@@ -250,10 +292,9 @@ export function useSchedule() {
         const createdLesson = newHomeworkScheduleItem.value
         const dayName = weekDays[days.value.indexOf(createdLesson.date)]
         if (dayName) {
-            selectedDay.value = dayName
+          selectedDay.value = dayName
         }
       }
-      // Сброс
       newHomeworkText.value = ''
       newHomeworkScheduleItem.value = null
     } catch (e) {
@@ -285,7 +326,6 @@ export function useSchedule() {
         }
       })
       await loadLectures()
-      // Сброс
       newLectureTitle.value = ''
       newLectureText.value = ''
       newLectureSubject.value = subjects.value.length ? subjects.value[0] : null
@@ -297,18 +337,12 @@ export function useSchedule() {
     }
   }
   
-  // добавим computed, который возвращает уроки на выбранный для ДЗ день
-    const scheduleForSelectedHomeworkDay = computed(() => {
+  const scheduleForSelectedHomeworkDay = computed(() => {
     const index = weekDays.indexOf(selectedDay.value)
     const date = days.value[index]
-    console.log('Selected day for homework:', selectedDay.value, 'date:', date)
-    console.log('All lessons:', schedule.value.map(l => ({ id: l.id, date: l.date, subject: l.subject?.name })))
-    const filtered = schedule.value.filter(l => l.date.slice(0, 10) === date)
-    console.log('Filtered lessons:', filtered)
-    return filtered
-    })
+    return schedule.value.filter(l => l.date.slice(0, 10) === date)
+  })
   
-  // Инициализация значений по умолчанию после загрузки
   watch(subjects, (newSubjects) => {
     if (newSubjects.length && !newLectureSubject.value) {
       newLectureSubject.value = newSubjects[0]
@@ -361,10 +395,11 @@ export function useSchedule() {
       }))
     })
   })
-  const setSelectedDay= (day) => {
+  
+  const setSelectedDay = (day) => {
     selectedDay.value = day
   }
-
+  
   return {
     schedule,
     loading,
@@ -374,6 +409,7 @@ export function useSchedule() {
     subjects,
     selectedTeacher,
     selectedSubject,
+    selectedGroup,
     lectures,
     groups,
     weekDays,
@@ -391,6 +427,7 @@ export function useSchedule() {
     changeWeek,
     selectTeacher,
     selectSubject,
+    selectGroup,
     homeworkForSelectedDay,
     lecturesForSelectedDay,
     formatDay,

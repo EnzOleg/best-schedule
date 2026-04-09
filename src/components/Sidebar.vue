@@ -9,13 +9,23 @@
         <div class="sidebar-card-inner">
           <template v-for="(item, index) in menu" :key="item.key">
             <div class="sidebar-item" @click="handleClick(item)">
-              <span>{{ item.label }}</span>
+              <span>{{ getItemLabel(item) }}</span>
               <img
                 src="../assets/icons/arrow_right.svg"
                 class="arrow-icon"
-                :class="{ rotated: openItem === item.key }"
+                :class="{
+                  rotated: openItem === item.key,
+                  'rotate-left': item.key === 'accounts' && openItem === item.key
+                }"
               />
             </div>
+
+            <GroupsList
+              v-if="item.key === 'groups' && openItem === 'groups'"
+              :groups="groups"
+              :selectedGroup="selectedGroup"
+              @select="selectGroup"
+            />
 
             <TeachersList
               v-if="item.key === 'teachers' && openItem === 'teachers'"
@@ -67,19 +77,22 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUser } from '../composables/useUser'
 import { useMenu } from '../composables/useMenu'
 import { useSchedule } from '../composables/useSchedule'
-import TeachersList from './TeacherList.vue'
-import SubjectsList from './SubjectsList.vue'
-import HomeworkSection from './HomeworkSection.vue'
-import LecturesSection from './LecturesSection.vue'
+import GroupsList from '../components/GroupList.vue'
+import TeachersList from '../components/TeacherList.vue'
+import SubjectsList from '../components/SubjectsList.vue'
+import HomeworkSection from '../components/HomeworkSection.vue'
+import LecturesSection from '../components/LecturesSection.vue'
 
 const router = useRouter()
 const props = defineProps({
-  scheduleGridRef: Object
+  scheduleGridRef: Object,
+  isAdminView: Boolean,
+  adminView: String
 })
 const emit = defineEmits(['create-homework', 'create-lecture', 'view-homework', 'view-lecture', 'toggle-admin'])
 
@@ -90,6 +103,9 @@ const {
   subjects,
   selectedTeacher,
   selectedSubject,
+  groups,
+  selectedGroup,
+  selectGroup,
   weekDays,
   selectedDay,
   selectedLectureDay,
@@ -103,24 +119,32 @@ const {
 
 const openItem = ref(null)
 
+// Отладка: выводим teachers в консоль при монтировании
+console.log('Sidebar mounted, teachers:', teachers)
+
+const getItemLabel = (item) => {
+  if (item.key === 'accounts' && props.isAdminView && props.adminView === 'accounts') {
+    return 'Расписание'
+  }
+  return item.label
+}
+
 const handleClick = (item) => {
+  console.log('Clicked item:', item.key, 'expandable:', item.expandable)
   if (item.key === 'logout') {
     logout()
     return
   }
 
   if (item.key === 'accounts') {
-    emit('toggle-admin', 'accounts') // теперь передаем ключ
-    return
-  }
-
-  if (item.key === 'groups') {
-    emit('toggle-admin', 'groups') // 🔥 добавляем группы
+    emit('toggle-admin', 'accounts')
+    openItem.value = openItem.value === item.key ? null : item.key
     return
   }
 
   if (item.expandable) {
     openItem.value = openItem.value === item.key ? null : item.key
+    console.log('openItem set to:', openItem.value)
     return
   }
 
@@ -134,7 +158,7 @@ const sidebarHeight = ref('auto')
 let resizeObserver = null
 
 const syncSidebarHeight = () => {
-  const gridEl = props.scheduleGridRef?.value   // <-- исправлено: берём .value
+  const gridEl = props.scheduleGridRef?.value
   if (gridEl && typeof gridEl.getBoundingClientRect === 'function') {
     const height = gridEl.getBoundingClientRect().height
     if (height > 0) {
@@ -165,6 +189,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+/* Остальные стили без изменений */
 .sidebar {
   width: 320px;
   background-color: rgba(240, 249, 248, 0.2);
@@ -289,5 +314,9 @@ onBeforeUnmount(() => {
 
 .arrow-icon.rotated {
   transform: rotate(90deg);
+}
+
+.arrow-icon.rotate-left {
+  transform: rotate(180deg);
 }
 </style>
