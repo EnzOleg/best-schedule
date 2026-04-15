@@ -125,7 +125,10 @@ export function useSchedule() {
             date
             startTime
             endTime
-            classroom
+            classroom {
+              id
+              name
+            }
             subject { name }
             teacher { name }
             group { id name }

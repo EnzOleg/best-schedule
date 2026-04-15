@@ -136,6 +136,11 @@ const handleClick = (item) => {
     return
   }
 
+  if (item.key === 'schedule') {
+    emit('toggle-admin', 'schedule')   
+    return
+  }
+
   if (item.key === 'accounts') {
     emit('toggle-admin', 'accounts')
     openItem.value = openItem.value === item.key ? null : item.key

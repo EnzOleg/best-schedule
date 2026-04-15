@@ -20,7 +20,8 @@
         </template>
 
         <template v-if="isAdminView">
-          <component :is="adminComponent" />
+          <AdminAccounts v-if="adminView === 'accounts'" />
+          <AdminScheduleGenerator v-else-if="adminView === 'schedule'" />
         </template>
       </section>
     <Sidebar
@@ -65,6 +66,7 @@ import ScheduleGrid from '../components/ScheduleGrid.vue'
 import Sidebar from '../components/Sidebar.vue'
 import WeekSwitcher from '../components/WeekSwitcher.vue'
 import AdminAccounts from '../components/AdminAccounts.vue'
+import AdminScheduleGenerator from '../components/AdminScheduleGenerator.vue'
 
 const isAdminView = ref(false)
 const adminView = ref('accounts')

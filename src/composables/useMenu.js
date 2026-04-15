@@ -6,6 +6,7 @@ export function useMenu(role) {
       { label: 'Группы', key: 'groups', expandable: true},  
       { label: 'Преподаватели', key: 'teachers', expandable: true },
       { label: 'Аккаунты', key: 'accounts', expandable: true },
+      { label: 'Расписание', key: 'schedule' },
       { label: 'Выйти', key: 'logout' }
     ],
     STUDENT: [

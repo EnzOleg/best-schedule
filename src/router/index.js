@@ -3,7 +3,6 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import ScheduleView from '../views/ScheduleView.vue'
 import SearchListView from '../views/SearchListView.vue'
-import AdminDashboard from '../views/AdminDashboard.vue'
 
 // --- Маршруты ---
 const routes = [
@@ -11,7 +10,6 @@ const routes = [
   { path: '/login', component: LoginView },
   { path: '/schedule', component: ScheduleView, meta: { requiresAuth: true } },
   { path: '/search-list', component: SearchListView, meta: { requiresAuth: true } },
-  { path: '/admin-dashboard', component: AdminDashboard, meta: { requiresAuth: true, requiresRole: 'ADMIN' } },
   // Можно добавить "страницу 404"
   { path: '/:catchAll(.*)', redirect: '/login' }
 ]
