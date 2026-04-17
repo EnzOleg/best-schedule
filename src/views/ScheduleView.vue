@@ -11,13 +11,25 @@
               :days="days"
               :timeSlots="timeSlots"
               :today="today"
-              :getLesson="getLesson"
+              :gridData="gridData"
+              :formatDay="formatDay"
               :role="role"
+              @lesson-click="openLessonModal"
               @drag-up="changeWeek(-1)"
               @drag-down="changeWeek(1)"
             />
           </div>
         </template>
+
+        <LessonModal
+          :isOpen="showLessonModal"
+          :lesson="selectedLesson"
+          :role="role"
+          :homeworkItems="lessonHomeworks"
+          :lectureItems="lessonLectures"
+          @close="showLessonModal = false"
+          @updated="handleLessonUpdated"
+        />
 
         <template v-if="isAdminView">
           <AdminAccounts v-if="adminView === 'accounts'" />
@@ -28,6 +40,23 @@
       :scheduleGridRef="scheduleGrid"
       :isAdminView="isAdminView"
       :adminView="adminView"
+      :teachers="teachers"
+      :subjects="subjects"
+      :groups="groups"
+      :selectedTeacher="selectedTeacher"
+      :selectedSubject="selectedSubject"
+      :selectedGroup="selectedGroup"
+      :selectTeacher="selectTeacher"
+      :selectSubject="selectSubject"
+      :selectGroup="selectGroup"
+      :setSelectedDay="setSelectedDay"
+      :weekDays="weekDays"
+      :selectedDay="selectedDay"
+      :selectedLectureDay="selectedLectureDay"
+      :homeworkForSelectedDay="homeworkForSelectedDay"
+      :lecturesForSelectedDay="lecturesForSelectedDay"
+      :currentWeekNumber="currentWeekNumber"
+      :changeWeek="changeWeek"
       @create-homework="showCreateHomeworkModal = true"
       @create-lecture="showCreateLectureModal = true"
       @view-homework="openHomeworkModal"
@@ -67,6 +96,7 @@ import Sidebar from '../components/Sidebar.vue'
 import WeekSwitcher from '../components/WeekSwitcher.vue'
 import AdminAccounts from '../components/AdminAccounts.vue'
 import AdminScheduleGenerator from '../components/AdminScheduleGenerator.vue'
+import LessonModal from '../components/LessonModal.vue'
 
 const isAdminView = ref(false)
 const adminView = ref('accounts')
@@ -77,8 +107,29 @@ const adminComponent = computed(() => {
   return null
 })
 
+const selectedLesson = ref(null)
+const lessonHomeworks = ref([])
+const lessonLectures = ref([])
+const showLessonModal = ref(false)
+
+const openLessonModal = async (lesson) => {
+  selectedLesson.value = lesson
+  lessonHomeworks.value = lesson.homework || []
+  lessonLectures.value = lectures.value.filter(l => 
+    l.subject?.id === lesson.subject?.id && l.date === lesson.date
+  )
+  showLessonModal.value = true
+}
+
 const { user, role, loadUser } = useUser()
 const {
+  selectedTeacher,
+  selectedSubject,
+  selectedGroup,
+  selectTeacher,
+  selectSubject,
+  selectGroup,
+  currentWeekNumber,
   days,
   timeSlots,
   getLesson,
@@ -106,7 +157,12 @@ const {
   scheduleForSelectedHomeworkDay,
   homeworkForSelectedDayView,
   setSelectedDay,
-  teachers
+  teachers,
+  lectures,
+  getOriginalLesson,
+  loadAllSubjects,
+  gridData,
+  formatDay,
 } = useSchedule()
 
 const today = new Date().toISOString().slice(0, 10)
@@ -144,9 +200,10 @@ const openHomeworkModal = (hw) => {
 
 onMounted(async () => {
   await loadUser()
+  await loadSchedule()
   await loadTeachers()
   await loadGroups()
-  await loadSchedule()
+  await loadAllSubjects()
   await loadLectures()
   console.log('Teachers loaded:', teachers.value)
   console.log('Subjects from schedule:', subjects.value)

@@ -49,7 +49,7 @@
               :homeworkForSelectedDay="homeworkForSelectedDay"
               :currentWeekNumber="currentWeekNumber"
               @change-week="changeWeek"
-              @update:selectedDay="selectedDay = $event"
+              @update:selectedDay="(day) => setSelectedDay(day)"
               @create-homework="emit('create-homework')"
               @view-homework="emit('view-homework', $event)"
             />
@@ -62,7 +62,7 @@
               :lecturesForSelectedDay="lecturesForSelectedDay"
               :currentWeekNumber="currentWeekNumber"
               @change-week="changeWeek"
-              @update:selectedLectureDay="selectedLectureDay = $event"
+              @update:selectedLectureDay="(day) => selectedLectureDay = day"
               @create-lecture="emit('create-lecture')"
               @view-lecture="emit('view-lecture')"
             />
@@ -81,46 +81,42 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUser } from '../composables/useUser'
 import { useMenu } from '../composables/useMenu'
-import { useSchedule } from '../composables/useSchedule'
 import GroupsList from '../components/GroupList.vue'
 import TeachersList from '../components/TeacherList.vue'
 import SubjectsList from '../components/SubjectsList.vue'
 import HomeworkSection from '../components/HomeworkSection.vue'
 import LecturesSection from '../components/LecturesSection.vue'
 
-const router = useRouter()
 const props = defineProps({
   scheduleGridRef: Object,
   isAdminView: Boolean,
-  adminView: String
+  adminView: String,
+  setSelectedDay: Function,
+  teachers: { type: Array, default: () => [] },
+  subjects: { type: Array, default: () => [] },
+  groups: { type: Array, default: () => [] },
+  selectedTeacher: Object,
+  selectedSubject: Object,
+  selectedGroup: Object,
+  selectTeacher: Function,
+  selectSubject: Function,
+  selectGroup: Function,
+  weekDays: { type: Array, default: () => ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] },
+  selectedDay: String,
+  selectedLectureDay: String,
+  homeworkForSelectedDay: { type: Array, default: () => [] },
+  lecturesForSelectedDay: { type: Array, default: () => [] },
+  currentWeekNumber: Number,
+  changeWeek: Function
 })
+
 const emit = defineEmits(['create-homework', 'create-lecture', 'view-homework', 'view-lecture', 'toggle-admin'])
 
+const router = useRouter()
 const { user, role, logout } = useUser()
 const { menu } = useMenu(role)
-const {
-  teachers,
-  subjects,
-  selectedTeacher,
-  selectedSubject,
-  groups,
-  selectedGroup,
-  selectGroup,
-  weekDays,
-  selectedDay,
-  selectedLectureDay,
-  homeworkForSelectedDay,
-  lecturesForSelectedDay,
-  currentWeekNumber,
-  changeWeek,
-  selectTeacher,
-  selectSubject
-} = useSchedule()
 
 const openItem = ref(null)
-
-// Отладка: выводим teachers в консоль при монтировании
-console.log('Sidebar mounted, teachers:', teachers)
 
 const getItemLabel = (item) => {
   if (item.key === 'accounts' && props.isAdminView && props.adminView === 'accounts') {
@@ -130,14 +126,13 @@ const getItemLabel = (item) => {
 }
 
 const handleClick = (item) => {
-  console.log('Clicked item:', item.key, 'expandable:', item.expandable)
   if (item.key === 'logout') {
     logout()
     return
   }
 
   if (item.key === 'schedule') {
-    emit('toggle-admin', 'schedule')   
+    emit('toggle-admin', 'schedule')
     return
   }
 
@@ -149,7 +144,6 @@ const handleClick = (item) => {
 
   if (item.expandable) {
     openItem.value = openItem.value === item.key ? null : item.key
-    console.log('openItem set to:', openItem.value)
     return
   }
 
@@ -158,17 +152,19 @@ const handleClick = (item) => {
   }
 }
 
-// Динамическая высота сайдбара
+// Динамическая высота сайдбара (исправлено)
 const sidebarHeight = ref('auto')
 let resizeObserver = null
+let lastHeight = 0
 
 const syncSidebarHeight = () => {
   const gridEl = props.scheduleGridRef?.value
-  if (gridEl && typeof gridEl.getBoundingClientRect === 'function') {
-    const height = gridEl.getBoundingClientRect().height
-    if (height > 0) {
-      sidebarHeight.value = `${height}px`
-    }
+  if (!gridEl) return
+
+  const height = gridEl.getBoundingClientRect().height
+  if (height && height !== lastHeight) {
+    lastHeight = height
+    sidebarHeight.value = `${height}px`
   }
 }
 
@@ -178,7 +174,7 @@ onMounted(() => {
     resizeObserver = new ResizeObserver(() => syncSidebarHeight())
     const gridEl = props.scheduleGridRef?.value
     if (gridEl) resizeObserver.observe(gridEl)
-    resizeObserver.observe(document.body)
+    // document.body больше не наблюдаем
   } else {
     window.addEventListener('resize', syncSidebarHeight)
   }
@@ -194,7 +190,7 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Остальные стили без изменений */
+/* все стили остаются без изменений */
 .sidebar {
   width: 320px;
   background-color: rgba(240, 249, 248, 0.2);
@@ -264,10 +260,6 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
-.sidebar-card::after {
-  display: none;
-}
-
 .sidebar-item:last-child {
   border-bottom-left-radius: 18px;
   border-bottom-right-radius: 18px;
@@ -288,25 +280,6 @@ onBeforeUnmount(() => {
 .sidebar-divider {
   height: 1px;
   background: #e1e5ea;
-}
-
-.sidebar-item.sub {
-  width: 286px;
-  height: 45px;
-  margin: 0px auto;
-  margin-bottom: 0px;
-  padding: 0 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #ffffff;
-  border-radius: 10px;
-  border-bottom: 1px solid rgba(248, 233, 214, 1);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow:
-    0 6px 14px rgba(0,0,0,0.16),
-    0 2px 4px rgba(0,0,0,0.08);
 }
 
 .arrow-icon {

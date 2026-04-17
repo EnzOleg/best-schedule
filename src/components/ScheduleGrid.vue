@@ -21,14 +21,14 @@
         class="cell"
       >
         <LessonCard
-        v-if="getLesson(day, time)"
-        :title="role === 'STUDENT' ? getLesson(day, time).subject.name : getLesson(day, time).group.name"
-        :subject="role === 'STUDENT' ? getLesson(day, time).teacher?.name : getLesson(day, time).subject.name"
-        :place="getLesson(day, time).classroom"
-        :teacher="null"
-        :hasHomework="getLesson(day, time).homework?.length > 0"
-        :isToday="day === today"
-        :isNow="false"
+          v-if="gridData[day]?.[time]?.original"
+          :title="role === 'STUDENT' ? gridData[day][time].original.subject.name : gridData[day][time].original.group.name"
+          :subject="role === 'STUDENT' ? gridData[day][time].original.teacher?.name : gridData[day][time].original.subject.name"
+          :place="gridData[day][time].original.classroom?.name"
+          :hasHomework="gridData[day][time].original.homework?.length > 0"
+          @click="emit('lesson-click', gridData[day][time].original)"
+          :isToday="day === today"
+          :class="{ 'filtered-out': gridData[day][time].isFilteredOut }"
         />
       </div>
     </template>
@@ -44,8 +44,9 @@ const props = defineProps({
   days: Array,
   timeSlots: Array,
   today: String,
-  getLesson: Function,
-  role: String
+  gridData: Object,   
+  formatDay: Function,
+  role: String,
 })
 
 const formatTimeRange = (start) => {
@@ -75,18 +76,23 @@ const onMouseDown = (e) => {
   startY = e.clientY
 }
 
-const onMouseUp = async (e) => {
-  if (!isDragging) return
+let hasTriggered = false
+
+const onMouseUp = (e) => {
+  if (!isDragging || hasTriggered) return
   const diff = e.clientY - startY
   if (diff > 50) {
     emit('drag-up')
+    hasTriggered = true
   } else if (diff < -50) {
     emit('drag-down')
+    hasTriggered = true
   }
   isDragging = false
+  setTimeout(() => {
+    hasTriggered = false
+  }, 200)
 }
-
-const { formatDay } = useSchedule()
 </script>
 
 <style scoped>

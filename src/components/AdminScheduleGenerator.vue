@@ -50,7 +50,7 @@
               </span>
             </div>
             <div class="subject-teachers">
-              Преподаватели: {{ subject.teachers?.map(t => t.name).join(', ') || 'не назначены' }}
+              Преподаватели: {{ subject.teachers?.map(t => t.email).join(', ') || 'не назначены' }}
             </div>
             <div class="subject-classrooms">
               Кабинеты: {{ subject.allowedClassrooms?.map(c => c.name).join(', ') || 'не указаны' }}
