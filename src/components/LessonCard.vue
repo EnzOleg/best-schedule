@@ -54,6 +54,7 @@ defineEmits(['click'])
   font-size: 14px;
   color: #2b3a3a;
   height: 100%;
+  max-width: 166px;
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -100,8 +101,12 @@ defineEmits(['click'])
 
 .title-text {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;   /* чтобы не вылезал за пределы родителя */
 }
 
+/* Для всех строк – гарантируем, что они не растягиваются */
 .row {
   display: flex;
   align-items: center;
@@ -109,6 +114,36 @@ defineEmits(['click'])
   font-size: 13px;
   opacity: 0.85;
   min-height: 24px;
+  min-width: 0;      /* важно для сжатия внутренних flex-элементов */
+  overflow: hidden;  /* скрываем вылезающее содержимое */
+}
+
+.row span {
+  white-space: nowrap;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.row span::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;           /* ширина зоны затухания */
+  height: 100%;
+  background: linear-gradient(to right, transparent, #EEF7F7);
+  pointer-events: none;
+}
+
+/* Для карточек с фоном .today и .now нужно менять цвет градиента */
+.lesson-card.today .row span::after {
+  background: linear-gradient(to right, transparent, #6AB7B6);
+}
+
+.lesson-card.now .row span::after {
+  background: linear-gradient(to right, transparent, #45A5A4);
 }
 
 .icon {
@@ -144,8 +179,8 @@ defineEmits(['click'])
   border-radius: inherit;
   pointer-events: none;
   background:
-    radial-gradient(110% 110% at 0% 0%, rgba(255,255,255,1) 10%, rgb(255, 255, 255) 26%, rgba(255,255,255,0) 52%),
-    radial-gradient(110% 110% at 100% 100%, rgba(255,255,255,1) 10%, rgb(255, 255, 255) 26%, rgba(255,255,255,0) 52%);
+    radial-gradient(80% 80% at 0% 0%, rgba(255,255,255,1) 10%, rgb(255, 255, 255) 26%, rgba(255,255,255,0) 60%),
+    radial-gradient(80% 80% at 100% 100%, rgba(255,255,255,1) 10%, rgb(255, 255, 255) 26%, rgba(255,255,255,0) 60%);
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   mask-composite: exclude;
   -webkit-mask-composite: xor;

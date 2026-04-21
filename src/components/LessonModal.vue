@@ -1,18 +1,17 @@
 <template>
   <div v-if="isOpen" class="modal-overlay" @click.self="closeModal">
     <div class="lesson-modal">
-      <!-- Заголовок модалки -->
       <div class="modal-header">
         <h3>{{ lesson.subject?.name }} ({{ formatTimeRange(lesson) }})</h3>
         <button class="modal-close" @click="closeModal">&times;</button>
       </div>
 
-      <!-- Тело модалки (новый дизайн) -->
       <div class="modal-body">
-        <!-- 📚 Информация -->
         <div class="card-block">
           <div class="info-item">
-            <div class="icon">📘</div>
+            <div class="icon">
+              <img :src="subjectIcon" alt="subject" class="icon-img icon-black" />
+            </div>
             <div>
               <div class="label">Предмет:</div>
               <div class="value">{{ lesson.subject?.name }}</div>
@@ -20,7 +19,9 @@
           </div>
 
           <div class="info-item">
-            <div class="icon">👤</div>
+            <div class="icon">
+              <img :src="teachersIcon" alt="teacher" class="icon-img icon-black" />
+            </div>
             <div>
               <div class="label">Преподаватель:</div>
               <div class="value">{{ lesson.teacher?.name }}</div>
@@ -28,22 +29,25 @@
           </div>
 
           <div class="info-item">
-            <div class="icon">📍</div>
+            <div class="icon">
+              <img :src="geoIcon" alt="classroom" class="icon-img icon-black" />
+            </div>
             <div>
               <div class="label">Аудитория:</div>
               <div class="value">{{ lesson.classroom?.name }}</div>
             </div>
           </div>
-
-          <!-- Доп. информация (группа, дата, время) – можно добавить при желании, но по дизайну не требуется -->
         </div>
 
-        <!-- 📝 Домашнее задание -->
         <div class="card-block">
           <div class="block-header">
             <span>Домашнее задание</span>
-            <button v-if="canManageHomework" class="circle-btn" @click="showAddHomework = !showAddHomework">
-              ДЗ
+            <button
+              v-if="canManageHomework && homeworks.length === 0"
+              class="add-btn"
+              @click="showAddHomework = true"
+            >
+              Создать
             </button>
           </div>
 
@@ -52,12 +56,6 @@
               <div class="hw-text">{{ hw.text }}</div>
               <div class="hw-date">до {{ formatDate(hw.date) }}</div>
 
-              <!-- Материалы (заглушка) -->
-              <div class="materials">
-                <div class="file-item">📄 документ</div>
-              </div>
-
-              <!-- Кнопки управления для учителя -->
               <div v-if="canManageHomework" class="card-actions">
                 <button class="icon-btn" @click="editHomework(hw)">✎</button>
                 <button class="icon-btn" @click="deleteHomework(hw.id)">🗑</button>
@@ -66,7 +64,6 @@
           </div>
           <div v-else class="empty-state">Нет домашних заданий</div>
 
-          <!-- Форма добавления ДЗ -->
           <div v-if="showAddHomework" class="add-form">
             <textarea v-model="newHomeworkText" placeholder="Текст задания" rows="3"></textarea>
             <input type="date" v-model="newHomeworkDate" />
@@ -77,24 +74,23 @@
           </div>
         </div>
 
-        <!-- 🎓 Лекции -->
         <div class="card-block">
           <div class="block-header">
             <span>Лекция</span>
-            <button v-if="canManageLectures" class="circle-btn" @click="showAddLecture = !showAddLecture">
-              🎓
+            <button
+              v-if="canManageLectures && lectures.length === 0"
+              class="add-btn"
+              @click="showAddLecture = true"
+            >
+              Создать
             </button>
           </div>
 
           <div v-if="lectures.length" class="lecture-list">
             <div v-for="lec in lectures" :key="lec.id" class="lecture-card">
               <div class="lec-title">{{ lec.title }}</div>
+              <div class="lec-text">{{ lec.text }}</div>   
               <div class="lec-date">на {{ formatDate(lec.date) }}</div>
-
-              <div class="materials">
-                <div class="file-item">📄 документ</div>
-                <div class="file-item">▶ презентация</div>
-              </div>
 
               <div v-if="canManageLectures" class="card-actions">
                 <button class="icon-btn" @click="editLecture(lec)">✎</button>
@@ -104,7 +100,6 @@
           </div>
           <div v-else class="empty-state">Нет лекций</div>
 
-          <!-- Форма добавления лекции -->
           <div v-if="showAddLecture" class="add-form">
             <input v-model="newLectureTitle" placeholder="Тема лекции" />
             <textarea v-model="newLectureText" placeholder="Содержание" rows="3"></textarea>
@@ -122,6 +117,9 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { graphqlRequest } from '../api'
+import geoIcon from '../assets/icons/geo.svg'
+import teachersIcon from '../assets/icons/teachers.svg'
+import subjectIcon from '../assets/icons/subject.svg'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -142,6 +140,9 @@ const homeworks = ref([])
 const showAddHomework = ref(false)
 const newHomeworkText = ref('')
 const newHomeworkDate = ref('')
+
+const editingHomeworkId = ref(null)
+const editingLectureId = ref(null)
 
 // Локальное состояние для лекций
 const lectures = ref([])
@@ -182,28 +183,56 @@ const createHomework = async () => {
     return
   }
   try {
-    const result = await graphqlRequest(`
-      mutation CreateHomework($input: CreateHomeworkInput!) {
-        createHomework(input: $input) { id text date }
-      }
-    `, {
-      input: {
+    let mutation, variables
+    if (editingHomeworkId.value) {
+      mutation = `
+        mutation UpdateHomework($id: ID!, $text: String, $date: String) {
+          updateHomework(id: $id, text: $text, date: $date) { id text date }
+        }
+      `
+      variables = {
+        id: editingHomeworkId.value,
         text: newHomeworkText.value,
-        date: newHomeworkDate.value,
-        scheduleItemId: props.lesson.id
+        date: newHomeworkDate.value
       }
-    })
-    homeworks.value.push(result.createHomework)
+    } else {
+      mutation = `
+        mutation CreateHomework($input: CreateHomeworkInput!) {
+          createHomework(input: $input) { id text date }
+        }
+      `
+      variables = {
+        input: {
+          text: newHomeworkText.value,
+          date: newHomeworkDate.value,
+          scheduleItemId: props.lesson.id
+        }
+      }
+    }
+    const result = await graphqlRequest(mutation, variables)
+    const savedHomework = editingHomeworkId.value ? result.updateHomework : result.createHomework
+    if (editingHomeworkId.value) {
+      const index = homeworks.value.findIndex(h => h.id === editingHomeworkId.value)
+      if (index !== -1) homeworks.value[index] = savedHomework
+    } else {
+      homeworks.value.push(savedHomework)
+    }
+    // Сброс формы
     newHomeworkText.value = ''
+    newHomeworkDate.value = props.lesson?.date || ''
     showAddHomework.value = false
+    editingHomeworkId.value = null
     emit('updated')
   } catch (e) {
-    alert('Ошибка при создании: ' + e.message)
+    alert('Ошибка: ' + e.message)
   }
 }
 
 const editHomework = (hw) => {
-  alert('Редактирование пока не реализовано')
+  newHomeworkText.value = hw.text
+  newHomeworkDate.value = hw.date
+  editingHomeworkId.value = hw.id
+  showAddHomework.value = true
 }
 
 const deleteHomework = async (id) => {
@@ -224,36 +253,80 @@ const createLecture = async () => {
     return
   }
   try {
-    const result = await graphqlRequest(`
-      mutation CreateLecture($input: CreateLectureInput!) {
-        createLecture(input: $input) { id title text date }
+    let mutation, variables
+    if (editingLectureId.value) {
+      mutation = `
+        mutation UpdateLecture($id: ID!, $input: CreateLectureInput!) {
+          updateLecture(id: $id, input: $input) { id title text date }
+        }
+      `
+      variables = {
+        id: editingLectureId.value,
+        input: {
+          date: props.lesson.date,
+          startTime: props.lesson.startTime,
+          endTime: props.lesson.endTime,
+          groupId: props.lesson.group?.id,
+          subjectId: props.lesson.subject?.id,
+          teacherId: props.lesson.teacher?.id,
+          title: newLectureTitle.value,
+          text: newLectureText.value || null
+        }
       }
-    `, {
-      input: {
-        date: props.lesson.date,
-        groupId: props.lesson.group?.id,
-        subjectId: props.lesson.subject?.id,
-        title: newLectureTitle.value,
-        text: newLectureText.value
+    } else {
+      mutation = `
+        mutation CreateLecture($input: CreateLectureInput!) {
+          createLecture(input: $input) { id title text date }
+        }
+      `
+      variables = {
+        input: {
+          date: props.lesson.date,
+          startTime: props.lesson.startTime,
+          endTime: props.lesson.endTime,
+          groupId: props.lesson.group?.id,
+          subjectId: props.lesson.subject?.id,
+          teacherId: props.lesson.teacher?.id,
+          title: newLectureTitle.value,
+          text: newLectureText.value || null
+        }
       }
-    })
-    lectures.value.push(result.createLecture)
+    }
+    const result = await graphqlRequest(mutation, variables)
+    const savedLecture = editingLectureId.value ? result.updateLecture : result.createLecture
+    if (editingLectureId.value) {
+      const index = lectures.value.findIndex(l => l.id === editingLectureId.value)
+      if (index !== -1) lectures.value[index] = savedLecture
+    } else {
+      lectures.value.push(savedLecture)
+    }
+    // Сброс формы
     newLectureTitle.value = ''
     newLectureText.value = ''
     showAddLecture.value = false
+    editingLectureId.value = null
     emit('updated')
   } catch (e) {
-    alert('Ошибка при создании: ' + e.message)
+    alert('Ошибка при сохранении лекции: ' + e.message)
   }
 }
 
 const editLecture = (lec) => {
-  alert('Редактирование лекций пока не реализовано')
+  newLectureTitle.value = lec.title
+  newLectureText.value = lec.text || ''
+  editingLectureId.value = lec.id
+  showAddLecture.value = true
 }
 
 const deleteLecture = async (id) => {
   if (!confirm('Удалить лекцию?')) return
-  alert('Удаление лекций пока не реализовано')
+  try {
+    await graphqlRequest(`mutation DeleteLecture($id: ID!) { deleteLecture(id: $id) }`, { id })
+    lectures.value = lectures.value.filter(l => l.id !== id)
+    emit('updated')
+  } catch (e) {
+    alert('Ошибка при удалении: ' + e.message)
+  }
 }
 </script>
 
@@ -338,7 +411,6 @@ const deleteLecture = async (id) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e8f7f3;
   border-radius: 12px;
   font-size: 18px;
 }
@@ -362,18 +434,6 @@ const deleteLecture = async (id) => {
   color: #065f46;
 }
 
-/* Круглая кнопка */
-.circle-btn {
-  background: #10b981;
-  border: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 /* Домашка / лекция */
 .homework-list, .lecture-list {
   display: flex;
@@ -392,6 +452,13 @@ const deleteLecture = async (id) => {
   font-size: 0.8rem;
   color: #6b7280;
   margin-top: 4px;
+}
+
+.lec-text {
+  font-size: 0.9rem;
+  color: #4b5563;
+  margin: 8px 0;
+  line-height: 1.4;
 }
 
 /* Файлы */
@@ -474,5 +541,31 @@ const deleteLecture = async (id) => {
   padding: 8px 16px;
   border-radius: 20px;
   cursor: pointer;
+}
+
+.add-btn {
+  background: #1e8f84;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.add-btn:hover {
+  background: #166b62;
+}
+
+.icon-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  color: black;
+}
+
+.icon-black {
+  filter: brightness(0) saturate(100%);
 }
 </style>

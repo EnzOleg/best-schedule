@@ -15,7 +15,7 @@
                 class="arrow-icon"
                 :class="{
                   rotated: openItem === item.key,
-                  'rotate-left': item.key === 'accounts' && openItem === item.key
+                  'rotate-left': (item.key === 'accounts' || item.key === 'schedule') && openItem === item.key
                 }"
               />
             </div>
@@ -62,7 +62,7 @@
               :lecturesForSelectedDay="lecturesForSelectedDay"
               :currentWeekNumber="currentWeekNumber"
               @change-week="changeWeek"
-              @update:selectedLectureDay="(day) => selectedLectureDay = day"
+              @update:selectedLectureDay="(day) => setSelectedLectureDay(day)"
               @create-lecture="emit('create-lecture')"
               @view-lecture="emit('view-lecture')"
             />
@@ -99,11 +99,13 @@ const props = defineProps({
   selectedSubject: Object,
   selectedGroup: Object,
   selectTeacher: Function,
+  setSelectedLectureDay: Function,
   selectSubject: Function,
   selectGroup: Function,
   weekDays: { type: Array, default: () => ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] },
   selectedDay: String,
   selectedLectureDay: String,
+  setSelectedLectureDay: Function,
   homeworkForSelectedDay: { type: Array, default: () => [] },
   lecturesForSelectedDay: { type: Array, default: () => [] },
   currentWeekNumber: Number,
@@ -120,7 +122,7 @@ const openItem = ref(null)
 
 const getItemLabel = (item) => {
   if (item.key === 'accounts' && props.isAdminView && props.adminView === 'accounts') {
-    return 'Расписание'
+    return 'Аккаунты'
   }
   return item.label
 }
@@ -133,6 +135,7 @@ const handleClick = (item) => {
 
   if (item.key === 'schedule') {
     emit('toggle-admin', 'schedule')
+    openItem.value = openItem.value === item.key ? null : item.key
     return
   }
 

@@ -7,7 +7,6 @@
         <div class="hw-week-pill">Неделя {{ currentWeekNumber }}</div>
       </div>
       <button class="nav-btn" @click="emit('change-week', 1)">&gt;</button>
-      <button v-if="role === 'TEACHER'" class="nav-btn create-btn" @click="emit('create-lecture')">+</button>
     </div>
 
     <div class="hw-days">
@@ -28,9 +27,9 @@
         :key="lecture.id"
         @click="emit('view-lecture', lecture)"
       >
-        <div class="hw-subject">{{ lecture.subject.name }}</div>
+        <div class="hw-subject">{{ lecture.subject?.name || 'Без названия' }}</div>
         <div class="hw-text">{{ lecture.title }}</div>
-        <div class="hw-text">{{ lecture.teacher?.name }}</div>
+        <div class="hw-text">{{ lecture.teacher?.name || '' }}</div>
       </div>
     </template>
     <div v-else class="hw-empty">Лекций нет 🎉</div>

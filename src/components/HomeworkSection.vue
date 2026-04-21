@@ -6,7 +6,6 @@
         <div class="hw-week-pill">Неделя {{ currentWeekNumber }}</div>
       </div>
       <button class="nav-btn" @click="emit('change-week', 1)">&gt;</button>
-      <button v-if="role === 'TEACHER'" class="nav-btn create-btn" @click="emit('create-homework')">+</button>
     </div>
 
     <div class="hw-days">

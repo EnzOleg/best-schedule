@@ -50,6 +50,7 @@
       :selectSubject="selectSubject"
       :selectGroup="selectGroup"
       :setSelectedDay="setSelectedDay"
+      :setSelectedLectureDay="setSelectedLectureDay"
       :weekDays="weekDays"
       :selectedDay="selectedDay"
       :selectedLectureDay="selectedLectureDay"
@@ -152,6 +153,7 @@ const {
   newLectureSubject,
   newLectureTitle,
   newLectureText,
+  setSelectedLectureDay,
   createHomework,
   createLecture,
   scheduleForSelectedHomeworkDay,

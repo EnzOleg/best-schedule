@@ -48,7 +48,7 @@ export async function graphqlRequest(query, variables = {}) {
     const isInternalError = firstError.message.includes('INTERNAL_ERROR')
     const isClassCast = firstError.message.includes('ClassCastException')
 
-    if (isMeQuery || isInternalError || isClassCast) {
+    if (isMeQuery || isClassCast) {
       console.warn('Обнаружена критическая ошибка GraphQL, очищаем токен и редиректим на логин')
       localStorage.removeItem('token')
       window.location.href = '/login'

@@ -18,9 +18,11 @@ export function useSchedule() {
   const selectedSubject = ref(null)
   const selectedGroup = ref(null)
   
-  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
   const selectedDay = ref('Пн')
-  const selectedLectureDay = ref('Пн')
+  const selectedLectureDay = ref('Пн')  
+  const setSelectedLectureDay = (day) => {
+    selectedLectureDay.value = day
+  }
   
   const newHomeworkScheduleItem = ref(null)
   const newHomeworkText = ref('')
@@ -29,7 +31,8 @@ export function useSchedule() {
   const newLectureSubject = ref(null)
   const newLectureTitle = ref('')
   const newLectureText = ref('')
-  
+  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+
   const getMonday = (offset = 0) => {
     const today = new Date()
     const day = today.getDay()
@@ -43,11 +46,13 @@ export function useSchedule() {
   const getWeekDaysArray = () => {
     const start = getMonday(weekOffset.value)
     const arr = []
+
     for (let i = 0; i < 6; i++) {
       const d = new Date(start)
-      d.setDate(d.getDate() + i)
+      d.setDate(start.getDate() + i)
       arr.push(d.toISOString().slice(0, 10))
     }
+
     return arr
   }
   
@@ -184,6 +189,7 @@ export function useSchedule() {
         }
       `)
       lectures.value = data.lecturesForMe
+      console.log('lectures loaded:', data.lecturesForMe)
     } catch (e) {
       console.error('Failed to load lectures', e)
     }
@@ -255,32 +261,39 @@ export function useSchedule() {
   }
   
   const homeworkForSelectedDay = computed(() => {
-    const index = weekDays.indexOf(selectedDay.value)
-    const date = days.value[index]
-    const dayLessons = schedule.value.filter(l => l.date.slice(0, 10) === date)
-    return dayLessons.flatMap(lesson => {
-      return (lesson.homework || []).map(hw => ({
+    const date = getDateFromDay(selectedDay.value)
+
+    const dayLessons = schedule.value.filter(l =>
+      l.date.slice(0, 10) === date
+    )
+
+    return dayLessons.flatMap(lesson =>
+      (lesson.homework || []).map(hw => ({
         ...hw,
         subject: lesson.subject
       }))
-    })
+    )
   })
   
   const lecturesForSelectedDay = computed(() => {
-    const index = weekDays.indexOf(selectedLectureDay.value)
-    const date = days.value[index]
-    return lectures.value.filter(l => l.date === date)
+    const date = getDateFromDay(selectedLectureDay.value)
+
+    return lectures.value.filter(l =>
+      l.date.slice(0, 10) === date
+    )
   })
   
   const scheduleForSelectedDay = computed(() => {
-    const index = weekDays.indexOf(selectedDay.value)
-    const date = days.value[index]
-    return schedule.value.filter(l => l.date === date)
+    const date = getDateFromDay(selectedDay.value)
+
+    return schedule.value.filter(l =>
+      l.date.slice(0, 10) === date
+    )
   })
   
   const getDateFromDay = (dayName) => {
     const index = weekDays.indexOf(dayName)
-    return days.value[index]
+    return days.value[index] || ''
   }
   
   const createHomework = async () => {
@@ -343,18 +356,24 @@ export function useSchedule() {
   
   const formatDay = (isoDate) => {
     const date = new Date(isoDate)
+
     const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
     const dayName = weekdays[date.getDay()]
+
     const day = String(date.getDate()).padStart(2, '0')
     const month = String(date.getMonth() + 1).padStart(2, '0')
+
     return `${dayName} ${day}.${month}`
   }
   
   const formatToday = () => {
     const date = new Date()
-    const weekdays = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
+
+    const weekdays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
     const dayName = weekdays[date.getDay()]
+
     const day = date.getDate()
+
     return `Сегодня ${dayName}, ${day}`
   }
   
@@ -373,9 +392,6 @@ export function useSchedule() {
   const setSelectedDay = (day) => {
     selectedDay.value = day
   }
-  
-  // Убираем все автоматические вызовы loadSchedule из watch
-  // watch на allSubjects и allGroups оставлены только для инициализации форм, они не вызывают loadSchedule
   
   watch(allSubjects, (newSubjects) => {
     if (newSubjects.length && !newLectureSubject.value) {
@@ -401,7 +417,6 @@ export function useSchedule() {
     selectedSubject,
     selectedGroup,
     lectures,
-    weekDays,
     selectedDay,
     selectedLectureDay,
     days,
@@ -411,11 +426,13 @@ export function useSchedule() {
     getLesson,
     getOriginalLesson,
     gridData,
+    weekDays,
     loadSchedule,
     loadLectures,
     loadTeachers,
     loadGroups,
     loadAllSubjects,
+    setSelectedLectureDay,
     changeWeek,
     selectTeacher,
     selectSubject,

@@ -136,6 +136,7 @@ const onMouseUp = (e) => {
   display: flex;
   align-items: center;
   justify-content: center;
+  max-width: 166px;
   font-size: 15px;
   color: #2b3a3a;
 }
