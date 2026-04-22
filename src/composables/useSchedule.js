@@ -1,4 +1,5 @@
 import { ref, computed, watch, nextTick } from 'vue'
+import { useUser } from '../composables/useUser'
 import { graphqlRequest } from '../api'
 
 export function useSchedule() {
@@ -6,6 +7,7 @@ export function useSchedule() {
   const loading = ref(false)
   const error = ref('')
   const weekOffset = ref(0)
+  const { role } = useUser()
   
   // Полные списки с сервера
   const allTeachers = ref([])
@@ -32,6 +34,13 @@ export function useSchedule() {
   const newLectureTitle = ref('')
   const newLectureText = ref('')
   const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
+
+  watch(selectedGroup, (newGroup, oldGroup) => {
+    if (role.value === 'ADMIN' && newGroup?.id !== oldGroup?.id) {
+      selectedTeacher.value = null
+      selectedSubject.value = null
+    }
+  })
 
   const getMonday = (offset = 0) => {
     const today = new Date()
@@ -71,6 +80,17 @@ export function useSchedule() {
   
   const filteredSchedule = computed(() => {
     let result = schedule.value
+
+    if (role.value === 'ADMIN') {
+      if (selectedGroup.value) {
+        result = result.filter(l => l.group?.id === selectedGroup.value.id)
+      }
+      if (selectedTeacher.value) {
+        result = result.filter(l => l.teacher?.id === selectedTeacher.value.id)
+      }
+      return result
+    }
+
     if (selectedTeacher.value) {
       result = result.filter(l => l.teacher?.id === selectedTeacher.value.id)
     }
@@ -99,27 +119,37 @@ export function useSchedule() {
     })
   }
   
-  // Данные для сетки (без вызова функций в шаблоне)
   const gridData = computed(() => {
     const result = {}
     const currentDays = days.value
     currentDays.forEach(day => {
       result[day] = {}
       timeSlots.forEach(slot => {
-        const original = schedule.value.find(item => {
-          const itemDate = item.date.slice(0, 10)
-          const itemTime = item.startTime.slice(0, 5)
-          return itemDate === day && itemTime === slot
-        })
-        const filtered = filteredSchedule.value.find(item => {
-          const itemDate = item.date.slice(0, 10)
-          const itemTime = item.startTime.slice(0, 5)
-          return itemDate === day && itemTime === slot
-        })
-        result[day][slot] = {
-          original: original || null,
-          isFilteredOut: original && !filtered
+        let original, isFilteredOut
+        if (role.value === 'ADMIN') {
+          // Для админа показываем только прошедшие фильтр, без затемнения
+          original = filteredSchedule.value.find(item => {
+            const itemDate = item.date.slice(0, 10)
+            const itemTime = item.startTime.slice(0, 5)
+            return itemDate === day && itemTime === slot
+          }) || null
+          isFilteredOut = false
+        } else {
+          // Для остальных — затемнение неподходящих
+          const orig = schedule.value.find(item => {
+            const itemDate = item.date.slice(0, 10)
+            const itemTime = item.startTime.slice(0, 5)
+            return itemDate === day && itemTime === slot
+          })
+          const filt = filteredSchedule.value.find(item => {
+            const itemDate = item.date.slice(0, 10)
+            const itemTime = item.startTime.slice(0, 5)
+            return itemDate === day && itemTime === slot
+          })
+          original = orig || null
+          isFilteredOut = orig && !filt
         }
+        result[day][slot] = { original, isFilteredOut }
       })
     })
     return result
@@ -205,13 +235,16 @@ export function useSchedule() {
   }
   
   const loadGroups = async () => {
-    try {
-      const data = await graphqlRequest(`{ groups { id name course specialty faculty } }`)
-      allGroups.value = data.groups
-    } catch (e) {
-      console.error('Failed to load groups', e)
+  try {
+    const data = await graphqlRequest(`{ groups { id name course specialty faculty } }`)
+    allGroups.value = data.groups
+    if (role.value === 'ADMIN' && allGroups.value.length && !selectedGroup.value) {
+      selectedGroup.value = allGroups.value[0]
     }
+  } catch (e) {
+    console.error('Failed to load groups', e)
   }
+}
   
   const loadAllSubjects = async () => {
     try {

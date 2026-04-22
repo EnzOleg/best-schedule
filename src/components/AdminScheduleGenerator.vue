@@ -50,17 +50,10 @@
               </span>
             </div>
             <div class="subject-teachers">
-              Преподаватели: {{ subject.teachers?.map(t => t.email).join(', ') || 'не назначены' }}
+              Преподаватели: {{ subject.teachers?.map(t => t.name).join(', ') || 'не назначены' }}
             </div>
             <div class="subject-classrooms">
-              Кабинеты: {{ subject.allowedClassrooms?.map(c => c.name).join(', ') || 'не указаны' }}
-            </div>
-            <div class="subject-hours">
-              Часы по группам:
-              <span v-for="gh in subject.groupHours" :key="gh.group.id">
-                {{ gh.group.name }}: {{ gh.hours }} ч.
-              </span>
-              <span v-if="!subject.groupHours?.length">не заданы</span>
+              Кабинеты: {{ subject.allowedClassrooms?.map(c => c.classroomName).join(', ') || 'не указаны' }}
             </div>
             <div class="subject-actions">
               <button class="icon-btn" @click="openSubjectModal(subject)">✎</button>
@@ -201,13 +194,6 @@
               </label>
             </div>
           </div>
-          <div class="form-group">
-            <label>Часы по группам</label>
-            <div v-for="group in allGroups" :key="group.id" class="group-hour-row">
-              <span>{{ group.name }}</span>
-              <input type="number" min="0" v-model.number="subjectForm.groupHours[group.id]" />
-            </div>
-          </div>
           <div class="form-actions">
             <button class="submit-btn" @click="saveSubject">Сохранить</button>
             <button class="cancel-btn" @click="closeSubjectModal">Отмена</button>
@@ -310,8 +296,18 @@ const loadSubjects = async () => {
         id
         name
         requiredClassroomType
-        teachers { id name }
-        allowedClassrooms { id name }
+        teachers {
+          id
+          name
+          email
+        }
+        allowedClassrooms {
+          id
+          classroomId
+          classroomName
+          classroomCapacity
+          classroomType
+        }
         groupHours {
           group { id name }
           hours
@@ -338,7 +334,7 @@ const openSubjectModal = (subject = null) => {
     subjectForm.name = subject.name
     subjectForm.requiredClassroomType = subject.requiredClassroomType
     subjectForm.teacherIds = subject.teachers?.map(t => t.id) || []
-    subjectForm.allowedClassroomIds = subject.allowedClassrooms?.map(c => c.id) || []
+    subjectForm.allowedClassroomIds = subject.allowedClassrooms?.map(c => c.classroomId) || []
     const gh = {}
     subject.groupHours?.forEach(item => { gh[item.group.id] = item.hours })
     subjectForm.groupHours = gh

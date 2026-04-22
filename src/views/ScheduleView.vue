@@ -28,7 +28,6 @@
           :homeworkItems="lessonHomeworks"
           :lectureItems="lessonLectures"
           @close="showLessonModal = false"
-          @updated="handleLessonUpdated"
         />
 
         <template v-if="isAdminView">
@@ -54,7 +53,6 @@
       :weekDays="weekDays"
       :selectedDay="selectedDay"
       :selectedLectureDay="selectedLectureDay"
-      :homeworkForSelectedDay="homeworkForSelectedDay"
       :lecturesForSelectedDay="lecturesForSelectedDay"
       :currentWeekNumber="currentWeekNumber"
       :changeWeek="changeWeek"
