@@ -54,7 +54,6 @@
           <div v-if="homeworks.length" class="homework-list">
             <div v-for="hw in homeworks" :key="hw.id" class="homework-card">
               <div class="hw-text">{{ hw.text }}</div>
-              <div class="hw-date">до {{ formatDate(hw.date) }}</div>
 
               <div v-if="canManageHomework" class="card-actions">
                 <button class="icon-btn" @click="editHomework(hw)">✎</button>
@@ -66,7 +65,6 @@
 
           <div v-if="showAddHomework" class="add-form">
             <textarea v-model="newHomeworkText" placeholder="Текст задания" rows="3"></textarea>
-            <input type="date" v-model="newHomeworkDate" />
             <div class="form-actions">
               <button class="submit-btn" @click="createHomework">Сохранить</button>
               <button class="cancel-btn" @click="showAddHomework = false">Отмена</button>
@@ -176,6 +174,13 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('ru-RU')
 }
 
+const reloadLessonData = async () => {
+  const res = await graphqlRequest(QUERY, { id: selectedLesson.id })
+
+  homeworks.value = res.homeworkForSchedule
+  lectures.value = res.lecturesForLesson 
+}
+
 // --- Домашние задания ---
 const createHomework = async () => {
   if (!newHomeworkText.value.trim()) {
@@ -187,24 +192,22 @@ const createHomework = async () => {
     if (editingHomeworkId.value) {
       mutation = `
         mutation UpdateHomework($id: ID!, $text: String, $date: String) {
-          updateHomework(id: $id, text: $text, date: $date) { id text date }
+          updateHomework(id: $id, text: $text, date: $date) { id text }
         }
       `
       variables = {
         id: editingHomeworkId.value,
-        text: newHomeworkText.value,
-        date: newHomeworkDate.value
+        text: newHomeworkText.value
       }
     } else {
       mutation = `
         mutation CreateHomework($input: CreateHomeworkInput!) {
-          createHomework(input: $input) { id text date }
+          createHomework(input: $input) { id text }
         }
       `
       variables = {
         input: {
           text: newHomeworkText.value,
-          date: newHomeworkDate.value,
           scheduleItemId: props.lesson.id
         }
       }

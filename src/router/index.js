@@ -2,14 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import LoginView from '../views/LoginView.vue'
 import ScheduleView from '../views/ScheduleView.vue'
-import SearchListView from '../views/SearchListView.vue'
 
 // --- Маршруты ---
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: LoginView },
   { path: '/schedule', component: ScheduleView, meta: { requiresAuth: true } },
-  { path: '/search-list', component: SearchListView, meta: { requiresAuth: true } },
   // Можно добавить "страницу 404"
   { path: '/:catchAll(.*)', redirect: '/login' }
 ]

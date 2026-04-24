@@ -27,6 +27,7 @@
           :role="role"
           :homeworkItems="lessonHomeworks"
           :lectureItems="lessonLectures"
+          @updated="reloadLessonData"
           @close="showLessonModal = false"
         />
 
@@ -44,6 +45,7 @@
       :groups="groups"
       :selectedTeacher="selectedTeacher"
       :selectedSubject="selectedSubject"
+      :homeworkForSelectedDay="homeworkForSelectedDay"
       :selectedGroup="selectedGroup"
       :selectTeacher="selectTeacher"
       :selectSubject="selectSubject"
@@ -120,6 +122,13 @@ const openLessonModal = async (lesson) => {
   showLessonModal.value = true
 }
 
+const reloadLessonData = async () => {
+  const res = await graphqlRequest(QUERY, { id: selectedLesson.id })
+
+  homeworks.value = res.homeworkForSchedule
+  lectures.value = res.lecturesForLesson 
+}
+
 const { user, role, loadUser } = useUser()
 const {
   selectedTeacher,
@@ -131,6 +140,7 @@ const {
   currentWeekNumber,
   days,
   timeSlots,
+  homeworkForSelectedDay,
   getLesson,
   changeWeek,
   loadSchedule,
