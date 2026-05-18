@@ -50,9 +50,15 @@
                   </div>
                 </div>
 
-                <button class="icon-btn edit-btn" @click="toggleTeacher(user)">
-                  <img :src="editIcon" alt="edit" />
-                </button>
+                <div class="item-actions">
+                  <button class="icon-btn edit-btn" @click="toggleTeacher(user)">
+                    <img :src="editIcon" alt="edit" />
+                  </button>
+
+                  <button class="icon-btn delete-btn" @click="deleteTeacher(user.id)">
+                    ×
+                  </button>
+                </div>
               </div>
 
               <div v-if="expandedTeacher === user.id" class="action-buttons">
@@ -111,7 +117,12 @@
                     </div>
                   </div>
                 </div>
-                <span class="arrow-icon" :class="{ rotated: expandedGroup === group.id }">▼</span>
+                <div class="item-actions" @click.stop>
+                  <span class="arrow-icon" :class="{ rotated: expandedGroup === group.id }">▼</span>
+                  <button class="icon-btn delete-btn" @click="deleteGroup(group.id)">
+                    ×
+                  </button>
+                </div>
               </div>
 
               <div v-if="expandedGroup === group.id" class="group-details">
@@ -153,9 +164,15 @@
                         </div>
                       </div>
 
-                      <button class="icon-btn edit-btn" @click="toggleStudent(student)">
-                        <img :src="editIcon" alt="edit" />
-                      </button>
+                      <div class="item-actions">
+                        <button class="icon-btn edit-btn" @click="toggleStudent(student)">
+                          <img :src="editIcon" alt="edit" />
+                        </button>
+
+                        <button class="icon-btn delete-btn" @click="deleteStudent(student.id)">
+                          ×
+                        </button>
+                      </div>
                     </div>
 
                     <div v-if="expandedStudent === student.id" class="action-buttons">
@@ -318,6 +335,58 @@ const createNewGroup = async () => {
   newGroup.value = { name: '', course: null, specialty: '', faculty: '' }
   showCreateGroup.value = false
   await loadGroups()
+}
+
+const deleteGroup = async (id) => {
+  if (!confirm('Удалить группу?')) return
+
+  await graphqlRequest(`
+    mutation ($id: ID!) {
+      deleteGroup(id: $id)
+    }
+  `, { id })
+
+  groups.value = groups.value.filter(group => group.id !== id)
+
+  if (expandedGroup.value === id) {
+    expandedGroup.value = null
+  }
+
+  delete showAddStudentForms.value[id]
+}
+
+const deleteTeacher = async (id) => {
+  if (!confirm('Удалить преподавателя?')) return
+
+  await graphqlRequest(`
+    mutation ($id: ID!) {
+      deleteUser(id: $id)
+    }
+  `, { id })
+
+  users.value = users.value.filter(u => u.id !== id)
+
+  if (expandedTeacher.value === id) {
+    expandedTeacher.value = null
+  }
+}
+
+const deleteStudent = async (id) => {
+  if (!confirm('Удалить студента?')) return
+
+  await graphqlRequest(`
+    mutation ($id: ID!) {
+      deleteUser(id: $id)
+    }
+  `, { id })
+
+  groups.value.forEach(group => {
+    group.students = group.students.filter(student => student.id !== id)
+  })
+
+  if (expandedStudent.value === id) {
+    expandedStudent.value = null
+  }
 }
 
 const createNewTeacher = async () => {
@@ -728,6 +797,27 @@ onMounted(() => {
   background: #fafcff;
   border: 1px solid #eef2ff;
   padding: 12px;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.delete-btn {
+  width: 30px;
+  height: 30px;
+  color: #dc2626;
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.delete-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 /* Форма создания (группы / преподавателя) */

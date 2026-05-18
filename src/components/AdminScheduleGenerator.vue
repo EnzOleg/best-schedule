@@ -650,7 +650,24 @@ const translateType = (type) => {
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  width: 100%;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+}
+
+.checkbox-label span {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }
 
 .group-hours-block {
@@ -688,9 +705,10 @@ const translateType = (type) => {
   font-weight: 500;
 }
 
-.form-group input,
+.form-group input:not([type="checkbox"]),
 .form-group select {
   width: 440px;
+  max-width: 100%;
   padding: 8px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
